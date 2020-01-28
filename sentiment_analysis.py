@@ -47,7 +47,7 @@ class SentimentModel:
 		return (session, embedded_text, text_input)
 
 	def get_scores(self, text):
-		# new_text = [text.lower()]
+
 		text = self.TFsession.run(self.embedded_text, feed_dict={self.text_input: [text]})
 
 		predictions = self.SentimentModel.predict(text)
