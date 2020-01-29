@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 import tensorflow_hub as hub
-
+import keras
 from keras.utils import to_categorical
 from sklearn.metrics import accuracy_score
 from keras.backend import clear_session
@@ -20,19 +20,22 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import tf_sentencepiece
 
-
+import json
 
 class SentimentModel:
 
 	def __init__(self):
 
-		#LOAD MODELS
-		self.SentimentModel = pickle.load(open("model/train.pkl", "rb"))
-		self.TFsession, self.embedded_text, self.text_input = self.initializeTfSession()
+		
+		self.SentimentModel = keras.models.load_model('model/train.h5') #loading model
+		self.SentimentModel._make_predict_function() #keras make_predict_funtion() to avoid errors during inference
+		# self.graph = tf.get_default_graph() 
+		self.TFsession, self.embedded_text, self.text_input = self.initializeTfSession()  #initiating tf graph
 
 
-	def initializeTfSession(self):
+	def initializeTfSession(self):	
 		# Create graph and finalize.
+		# try:
 		g = tf.Graph()
 		with g.as_default():
 			text_input = tf.placeholder(dtype=tf.string, shape=[None])
@@ -47,12 +50,16 @@ class SentimentModel:
 		return (session, embedded_text, text_input)
 
 	def get_scores(self, text):
-
-		text = self.TFsession.run(self.embedded_text, feed_dict={self.text_input: [text]})
-
-		predictions = self.SentimentModel.predict(text)
+		text =[text.lower()]
+		emb_text = self.TFsession.run(self.embedded_text, feed_dict={self.text_input: text})	
+		predictions = self.SentimentModel.predict(emb_text)
+	
 		predictions = pd.DataFrame(predictions,columns=['negative','someWhat negative','neutral','someWhat positive','positive'])
 		predictions = predictions.to_json(orient='records')[1:-1].replace('},{', '} {')
 		return predictions
-		
+
+		return emb_text
+
+
+
 

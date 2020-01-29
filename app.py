@@ -1,5 +1,4 @@
 # libs
-# from sentiment_analysis import get_scores
 from io import StringIO    
 import json
 import flask
@@ -15,24 +14,22 @@ from sentiment_analysis import SentimentModel
 
 sentiment_analysis_objects = {}
 sm = SentimentModel()
-# SentimentModel().get_scores("hi")
-
-# class sentiment_analysis:
-# def __init__(self,text):
-# 	self.text = text
-
-def reply(text):
-	response =sm.get_scores(text)
-
-	return response
 
 
-def get_score(json):
+def __init__(self, text):
+    
+    self.text = text
+		
+    
 
-    response = reply(json['text'])
-
-    return response
-
+# Model Inference
+def sentiment_scores(json):
+    """
+    calls get_scores function in the
+    SentimentModel class
+    """ 
+    scores = sm.get_scores(json['text'])
+    return scores
 
 
 app = Flask(__name__)
@@ -51,7 +48,7 @@ def sentiment_analysis():
        return flask.Response(response='Content type should be application/json', status=415, mimetype='application/json')
 
    # Get the response
-   response = get_score(input_json)
+   response = sentiment_scores(input_json)
 
    out = StringIO()
    json.dump(response, out)
