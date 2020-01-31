@@ -1,39 +1,41 @@
+# libs import
 import pandas as pd
 import numpy as np
-import pymssql
-from keras.models import Sequential
-from keras.layers import Dense
-from keras.layers import LSTM
-from keras.layers.embeddings import Embedding 
-from sklearn.svm import SVC
-from sklearn.model_selection import train_test_split
-
-from sklearn.metrics import f1_score
-from sklearn.feature_extraction.text import TfidfVectorizer
-import tensorflow_hub as hub
-import keras
-from keras.utils import to_categorical
-from sklearn.metrics import accuracy_score
-from keras.backend import clear_session
-import pickle
 import tensorflow as tf
 import tensorflow_hub as hub
-import tf_sentencepiece
-
+import keras
+import logging as log
 import json
+
+# Intializing TF session and graph
+config = tf.ConfigProto(
+    device_count={'GPU': 1},
+    intra_op_parallelism_threads=1,
+    allow_soft_placement=True
+)
+
+config.gpu_options.allow_growth = True
+config.gpu_options.per_process_gpu_memory_fraction = 0.6
+
+session = tf.Session(config=config)
+
+keras.backend.set_session(session)
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if hasattr(obj,'to_dict'):
+            return obj.to_dict()
+        return json.JSONEncoder.default(self, obj)
 
 class SentimentModel:
 
 	def __init__(self):
 
-		
+
 		self.SentimentModel = keras.models.load_model('model/train.h5') #loading model
-		self.SentimentModel._make_predict_function() #keras make_predict_funtion() to avoid errors during inference
-		# self.graph = tf.get_default_graph() 
 		self.TFsession, self.embedded_text, self.text_input = self.initializeTfSession()  #initiating tf graph
 
 
-	def initializeTfSession(self):	
+	def initializeTfSession(self):
 		# Create graph and finalize.
 		# try:
 		g = tf.Graph()
@@ -49,17 +51,23 @@ class SentimentModel:
 		session.run(init_op)
 		return (session, embedded_text, text_input)
 
-	def get_scores(self, text):
+	def model_predict(self,emb_text):
+		# using created tf session and graph as default
+		try:
+			with session.as_default():
+				with session.graph.as_default():
+					
+					predictions = self.SentimentModel.predict(emb_text)
+					return predictions
+		except Exception as ex:
+			log.log('Internal TF bakend Internal Error', ex, ex.__traceback__.tb_lineno)
+   
+	def get_scores(self,text):
+
 		text =[text.lower()]
-		emb_text = self.TFsession.run(self.embedded_text, feed_dict={self.text_input: text})	
-		predictions = self.SentimentModel.predict(emb_text)
-	
+		emb_text = self.TFsession.run(self.embedded_text, feed_dict={self.text_input: text})
+		predictions = self.model_predict(emb_text)
 		predictions = pd.DataFrame(predictions,columns=['negative','someWhat negative','neutral','someWhat positive','positive'])
-		predictions = predictions.to_json(orient='records')[1:-1].replace('},{', '} {')
+		predictions = predictions.to_json(orient='records')[1:-1].replace('},{','} {')
+		
 		return predictions
-
-		return emb_text
-
-
-
-

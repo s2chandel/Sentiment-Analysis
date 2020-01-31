@@ -3,23 +3,19 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
-from keras.layers.embeddings import Embedding 
-from sklearn.svm import SVC
+from keras.layers import Dropout
 from sklearn.model_selection import train_test_split
-
-from sklearn.feature_extraction.text import TfidfVectorizer
 import tensorflow as tf
 import tensorflow_hub as hub
-import tf_sentencepiece
 from keras.utils import to_categorical
 from sklearn.metrics import accuracy_score
-
 import pickle
-import tensorflow_hub as hub
-import numpy as np
-import tf_sentencepiece
+from matplotlib import pyplot as plt
 
 
+"""
+reading movie reviews dataset
+"""
 data = pd.read_csv('train.tsv', sep='\t')
 
 # print(tf.version.VERSION)
@@ -71,42 +67,65 @@ y_test_binary = to_categorical(ytest)
 def model():
     model = Sequential()
     # adding dropout layers to regularise the neural network
+    model.add(Dense(128, activation='relu', kernel_initializer='random_normal',input_dim=512))
+    # 512 input nodes	connected to dense layer_1 128 nodes
+    # weights = 512*128 +128 = 65664 params
+    model.add(Dropout(0.2))																
+    
     model.add(Dense(128, activation='relu', kernel_initializer='random_normal',input_dim=512))# input
+    model.add(Dropout(0.2))
+
+    model.add(Dense(128, activation='relu', kernel_initializer='random_normal',input_dim=512))# input
+    model.add(Dropout(0.2))
+
+    model.add(Dense(128, activation='relu', kernel_initializer='random_normal',input_dim=512))# input
+    model.add(Dropout(0.2))
+
     model.add(Dense(5, activation='softmax', kernel_initializer='random_normal')) # target shape
     model.compile(optimizer='adam',
-                loss='categorical_crossentropy',)
+                loss='categorical_crossentropy',metrics=['acc'])
     model.summary()
     return model
 
 model = model()
-model.fit(xtrain, y_train_binary,
-            epochs=20,
-            batch_size=100,verbose=1)
+history = model.fit(xtrain, y_train_binary,
+				epochs=10,
+				batch_size=50,validation_data=(xtest,y_test_binary),verbose=1)
 
 
 train_acc =  model.evaluate(xtrain,y_train_binary)
 print("train_accuray:{}".format(train_acc))
 
 
-test_acc = model.evaluate(xtest,y_test_binary)
-print("test_accuray:{}".format(test_acc))
+val_acc = model.evaluate(xtest,y_test_binary)
+print("test_accuray:{}".format(val_acc))
 
 
+# model serialization
 model.save('model/train.h5')
 
 
-# pkl.dump(model,open("model/train.pkl","wb"))
+"""Model Vizualization"""
+# Accuracy
+plt.plot(history.history['acc'])
+plt.plot(history.history['val_acc'])
+plt.title('Model Accuracy')
+plt.ylabel('accuracy')
+plt.xlabel('epoch')
+plt.legend(['Train', 'Validation'], loc='upper left')
+plt.show()
 
 
 
 
-
-
-
-
-
-
-
+# Model Loss
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.title('Model Loss')
+plt.ylabel('loss')
+plt.xlabel('epoch')
+plt.legend(['train', 'val'], loc='upper left')
+plt.show()
 
 
 
