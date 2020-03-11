@@ -4,8 +4,11 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 import keras
+import re
 import logging as log
-import json
+import json,sys
+import tf_sentencepiece
+
 
 # Intializing TF session and graph
 config = tf.ConfigProto(
@@ -31,7 +34,7 @@ class SentimentModel:
 	def __init__(self):
 
 
-		self.SentimentModel = keras.models.load_model('model/train.h5') #loading model
+		self.SentimentModel = keras.models.load_model('model/cnn_v02.h5') #loading model
 		self.TFsession, self.embedded_text, self.text_input = self.initializeTfSession()  #initiating tf graph
 
 
@@ -66,8 +69,14 @@ class SentimentModel:
 
 		text =[text.lower()]
 		emb_text = self.TFsession.run(self.embedded_text, feed_dict={self.text_input: text})
-		predictions = self.model_predict(emb_text)
-		predictions = pd.DataFrame(predictions,columns=['negative','someWhat negative','neutral','someWhat positive','positive'])
-		predictions = predictions.to_json(orient='records')[1:-1].replace('},{','} {')
-		
-		return predictions
+		model_input = np.expand_dims(emb_text, axis=2) 
+		predictions = self.model_predict(model_input)
+		predictions = pd.DataFrame(predictions)
+
+		return {"Negative":list(predictions[0]),"Neutral":list(predictions[1]),"Positive":list(predictions[2])}	
+	
+
+
+
+
+
